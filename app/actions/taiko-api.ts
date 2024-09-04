@@ -23,6 +23,9 @@ export async function getTaikoTopPlayers() {
         Referer: 'https://trailblazer.mainnet.taiko.xyz/',
         Origin: 'https://trailblazer.mainnet.taiko.xyz',
       },
+      next: {
+        revalidate: 60,
+      },
     },
   );
 
