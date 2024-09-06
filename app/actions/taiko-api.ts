@@ -5,12 +5,12 @@ import TaikoonContractABI from '../abis/TaikoonContractABI';
 
 const client = createPublicClient({
   chain: taiko,
-  transport: http(),
+  transport: http()
 });
 
 const taikoonContract = {
   address: '0x4a045c5016b200f7e08a4cabb2cda6e85bf53295',
-  abi: TaikoonContractABI as Abi,
+  abi: TaikoonContractABI as Abi
 } as const;
 
 export async function getTaikoTopPlayers() {
@@ -21,17 +21,17 @@ export async function getTaikoTopPlayers() {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         Referer: 'https://trailblazer.mainnet.taiko.xyz/',
-        Origin: 'https://trailblazer.mainnet.taiko.xyz',
+        Origin: 'https://trailblazer.mainnet.taiko.xyz'
       },
       next: {
-        revalidate: 60,
-      },
-    },
+        revalidate: 60
+      }
+    }
   );
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch top players: ${response.status} ${response.statusText}`,
+      `Failed to fetch top players: ${response.status} ${response.statusText}`
     );
   }
 
@@ -45,18 +45,59 @@ export async function getTaikoBlock() {
   return latestBlock;
 }
 
-export async function getPlayersTaikoonBalances(addresses: Address[]) {
+export async function getPlayersTaikoonBalances(
+  addresses: Address[]
+): Promise<bigint[]> {
   const contracts = addresses.map((address) => ({
     ...taikoonContract,
     functionName: 'balanceOf',
-    args: [address],
+    args: [address]
   }));
 
   const results = await multicall(client, {
-    contracts: contracts,
+    contracts: contracts
   });
 
   return results.map((result) =>
-    result.status === 'success' ? result.result : BigInt(0),
-  );
+    result.status === 'success' ? result.result : BigInt(0)
+  ) as Array<bigint>;
+}
+
+interface TaikoLeaderboardItem {
+  address: string;
+  points: number;
+  multiplier: number;
+  event: string;
+  date: number;
+}
+
+export async function getTaikoUserHistory({
+  address
+}: {
+  address: string;
+}): Promise<TaikoLeaderboardItem[]> {
+  const url = `
+https://trailblazer.mainnet.taiko.xyz/user/history?address=${address}&page=0&size=500`;
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      Referer: 'https://trailblazer.mainnet.taiko.xyz/',
+      Origin: 'https://trailblazer.mainnet.taiko.xyz'
+    },
+    next: {
+      revalidate: 60
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch top players: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+
+  return data.items;
 }
